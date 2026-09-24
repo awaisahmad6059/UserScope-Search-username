@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UserScope — Username Intelligence Dashboard</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:,">
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="11" cy="11" r="7"></circle>
+        <line x1="16.2" y1="16.2" x2="21" y2="21"></line>
+        <circle cx="11" cy="11" r="3" fill="currentColor" stroke="none"></circle>
+      </svg>
+      <span class="pulse" aria-hidden="true"></span>
+    </div>
+    <div class="brand-txt">
+      <h1>UserScope</h1>
+      <p>Username intelligence &middot; across social networks</p>
+    </div>
+  </div>
+  <div class="top-right">
+    <div class="pill idle" id="pill"><span class="dot"></span><b id="pillText">Idle</b></div>
+    <span class="ver" id="ver"></span>
+  </div>
+</header>
+
+<main>
+
+  <section class="card hero">
+    <form id="searchForm" autocomplete="off">
+      <div class="search-row">
+        <span class="at" aria-hidden="true">@</span>
+        <input id="u" name="u" placeholder="username — e.g. aak" spellcheck="false" maxlength="64">
+        <button id="btnSearch" type="submit">
+          <span class="btn-txt">Search</span>
+          <span class="spinner" hidden></span>
+        </button>
+      </div>
+      <div class="opts">
+        <label class="switch">
+          <input type="checkbox" id="nsfw">
+          <span>Include NSFW sites</span>
+        </label>
+        <label class="field">Request timeout
+          <select id="timeout">
+            <option value="15">15 sec</option>
+            <option value="30" selected>30 sec</option>
+            <option value="60">60 sec</option>
+          </select>
+        </label>
+      </div>
+    </form>
+    <div id="banner" class="banner" hidden></div>
+    <div class="progress-wrap" id="progressWrap" hidden>
+      <div class="bar"><div class="fill" id="progressFill"></div></div>
+      <div class="progress-meta"><span id="progressLabel">Starting&hellip;</span><span id="progressPct">0%</span></div>
+    </div>
+  </section>
+
+  <section class="stats" id="stats"></section>
+
+  <section class="cols">
+    <div class="card results-card">
+      <div class="card-head">
+        <div>
+          <h2>Results</h2>
+          <span class="sub" id="checkedLabel"></span>
+        </div>
+        <div class="res-tools">
+          <input id="fRes" class="res-filter" placeholder="Filter results…  e.g. instagram, claimed, 200" spellcheck="false">
+          <div class="tabs" id="tabs"></div>
+        </div>
+      </div>
+      <div class="table-wrap" id="tableWrap">
+        <table>
+          <thead>
+            <tr><th>Site</th><th>Profile</th><th>Status</th><th>HTTP</th><th>Response</th></tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="emptyState">
+        <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="11" cy="11" r="7"></circle><line x1="16.2" y1="16.2" x2="21" y2="21"></line></svg>
+        <p>Enter a username and press <b>Search</b> to begin.</p>
+      </div>
+    </div>
+
+    <div class="card feed-card">
+      <div class="card-head"><h2>Live activity</h2><span class="sub" id="feedCount"></span></div>
+      <div class="feed" id="feed"></div>
+    </div>
+  </section>
+
+  <section class="card export-bar" id="exportBar" hidden>
+    <div class="done">
+      <span class="done-icon">&check;</span>
+      <div>
+        <b id="doneTitle">Search finished</b>
+        <span id="doneMeta"></span>
+      </div>
+    </div>
+    <div class="export-btns">
+      <button class="danger" id="btnCancel" type="button">Stop</button>
+      <button class="ghost" id="btnReset" type="button">New search</button>
+      <span class="sep"></span>
+      <button id="btnJson" type="button">JSON</button>
+      <button id="btnCsv" type="button">CSV</button>
+      <button id="btnTxt" type="button">TXT</button>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <span id="footVer">UserScope</span>
+  <span>Local dashboard &middot; 127.0.0.1 only</span>
+  <span>For authorized testing and education</span>
+</footer>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>
