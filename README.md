@@ -100,7 +100,6 @@ UserScope/
 │  ├─ server.py            # stdlib dashboard server + JSON API
 │  └─ ui/                  # dashboard UI (index.html, style.css, app.js, favicon.svg)
 ├─ tests/                  # offline test-suite (test_phone.py, test_api.py, …)
-├─ vercel.json             # static-only: makes Vercel imports build (UI served, backend local-only)
 ├─ start.bat               # one-click launcher (Windows)
 ├─ requirements.txt        # includes phonenumbers (offline, Apache-2.0)
 ├─ pyproject.toml
@@ -135,11 +134,7 @@ The engine fires parallel HTTP probes, our custom notifier forwards every result
 
 ## ⚠️ Notes
 
-- **This is a local-first desktop tool.** The dashboard binds to `127.0.0.1`; the scan engine runs in background threads and writes history to local files — that is exactly why it will not work as a hosted/serverless web app. Keep it on your own machine.
-- `vercel.json` + `public/` exist for a Vercel demo deployment. Deployed site works like this:
-  - **Phone lookup: fully functional** — served by a serverless `/api/phone` function (offline `phonenumbers`, no keys). History stays local-only.
-  - **Username search: lite mode** — a serverless `/api/hostscan` scans a curated 12-platform set in one request. Datacenter IPs get blocked by bot-protected sites, and the full 462-site live scan (threads, minutes, file history) still requires the local app: `python app\server.py`.
-  - `public/` is just a static mirror of `app/ui/` — when you change the UI locally, mirror the files there before redeploying.
+- **This is a local-first desktop tool.** The dashboard binds to `127.0.0.1`; the scan engine runs in background threads and writes history/reports to local files. It is designed to run on your own machine — there is no hosting setup.
 - Results depend on the network you're on. Sites behind strict bot-detection (WAF) show **Blocked** — a home/mobile IP works far better than a datacenter/VPN one.
 - One full scan can take **minutes** (462 sites × network round-trips). That's normal — watch it live.
 - **Use responsibly.** Search your own usernames/numbers or run authorized OSINT work only. Many sites prohibit automated probing; keep within the law and site terms.

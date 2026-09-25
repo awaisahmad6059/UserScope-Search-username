@@ -146,7 +146,6 @@ main { max-width: 1240px; margin: 0 auto; padding: 26px; display: grid; gap: 20p
   color: var(--err); font-size: 13.5px; white-space: pre-wrap;
 }
 .banner.warn { border-color: rgba(251, 191, 36, .4); background: rgba(251, 191, 36, .08); color: var(--warn); }
-.banner.demo { border-color: rgba(34, 211, 238, .45); background: rgba(34, 211, 238, .08); color: var(--accent2); }
 
 .progress-wrap { margin-top: 18px; }
 .bar { height: 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.06); overflow: hidden; }
