@@ -17,6 +17,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.runner import UserScopeRunner
+from app.phone import PhoneLookup
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 4545
@@ -36,6 +37,7 @@ MIME = {
 class _Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
     runner = None
+    phone = None
     site_total = 0
 
     def _send(self, code, body=b"", ctype="text/plain; charset=utf-8", extra=None):
@@ -73,6 +75,23 @@ class _Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/status":
             self._json(200, self.runner.status())
+            return
+        if path == "/api/phone":
+            qs = urllib.parse.parse_qs(parsed.query)
+            num = (qs.get("num") or [""])[0]
+            web = (qs.get("web") or ["0"])[0] in ("1", "true", "yes", "on")
+            if not num.strip():
+                self._json(400, {"error": "Provide a phone number in the 'num' parameter."})
+                return
+            data = self.phone.lookup(num)
+            if web:
+                data = dict(data)
+                data["web"] = self.phone.web_search(num)
+            self.phone.add_history(data)
+            self._json(200, data)
+            return
+        if path == "/api/phone/history":
+            self._json(200, {"items": self.phone.history()})
             return
         if path == "/api/export":
             qs = urllib.parse.parse_qs(parsed.query)
@@ -123,6 +142,10 @@ class _Handler(BaseHTTPRequestHandler):
             ok = self.runner.cancel()
             self._json(200, {"ok": ok, "message": "Cancellation requested." if ok else "Nothing to cancel."})
             return
+        if path == "/api/phone/history/clear":
+            self.phone.clear_history()
+            self._json(200, {"ok": True, "message": "History cleared."})
+            return
         self._json(404, {"error": "Unknown route"})
 
 
@@ -139,6 +162,7 @@ class Dashboard:
         except Exception:
             __version__ = "0.1.0"
         _Handler.runner = self.runner
+        _Handler.phone = PhoneLookup()
         self.httpd = ThreadingHTTPServer((host, port), _Handler)
         self.host, self.port = self.httpd.server_address[0:2]
         self.httpd.brand = {"version": __version__, "sites": self.site_count}

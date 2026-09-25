@@ -32,6 +32,13 @@
 
 <main>
 
+  <nav class="modes">
+    <button id="modeUser" class="mode active" type="button">Username search</button>
+    <button id="modePhone" class="mode" type="button">Phone lookup</button>
+  </nav>
+
+  <div id="userPane">
+
   <section class="card hero">
     <form id="searchForm" autocomplete="off">
       <div class="search-row">
@@ -112,6 +119,36 @@
       <button id="btnJson" type="button">JSON</button>
       <button id="btnCsv" type="button">CSV</button>
       <button id="btnTxt" type="button">TXT</button>
+    </div>
+  </section>
+
+  </div>
+
+  <section class="card hero" id="phonePane" hidden>
+    <div class="search-row">
+      <span class="at" aria-hidden="true">+</span>
+      <input id="phoneNum" placeholder="Phone number — e.g. +92 300 1234567" spellcheck="false" maxlength="24">
+      <button id="btnPhone" type="button">
+        <span class="btn-txt">Analyze</span>
+        <span class="spinner" hidden></span>
+      </button>
+    </div>
+    <div class="opts">
+      <label class="switch">
+        <input type="checkbox" id="phoneSearchWeb">
+        <span>Also search the number on the web (DuckDuckGo, free, no API)</span>
+      </label>
+    </div>
+    <div id="phoneBanner" class="banner" hidden></div>
+    <div id="phoneResult"></div>
+    <div class="ph-hist">
+      <div class="card-head">
+        <div><h2>History</h2><span class="sub" id="phCount"></span></div>
+        <div class="res-tools">
+          <button class="ghost" id="phClear" type="button">Clear</button>
+        </div>
+      </div>
+      <div id="phHist" class="ph-list"></div>
     </div>
   </section>
 

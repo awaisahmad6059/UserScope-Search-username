@@ -273,6 +273,171 @@ function exportUrl(fmt) {
   return "/api/export?format=" + fmt + "&username=" + encodeURIComponent($("u").value.trim());
 }
 
+/* ---------- phone lookup ---------- */
+function setMode(mode) {
+  const user = mode === "user", phone = mode === "phone";
+  $("userPane").hidden = !user;
+  $("phonePane").hidden = !phone;
+  $("modeUser").classList.toggle("active", user);
+  $("modePhone").classList.toggle("active", phone);
+  if (phone) {
+    loadPhoneHistory();
+    $("phoneNum").focus();
+    try { history.replaceState(null, "", "#phone"); } catch (err) { /* noop */ }
+  } else {
+    try { history.replaceState(null, "", window.location.pathname); } catch (err) { /* noop */ }
+  }
+}
+
+const phoneRow = (d) => [
+  ["Country", (d.region_name || "") + (d.region ? " (" + d.region + ")" : "")],
+  ["Country code", d.country_code != null ? "+" + d.country_code : "—"],
+  ["National number", d.national_number || "—"],
+  ["Line type", d.phone_type || "—"],
+  ["Carrier", d.carrier || "—"],
+  ["Timezone", (d.timezones && d.timezones[0]) || "—"],
+  ["Local time", d.local_time || "—"],
+  ["Geographic hint", d.geo || "—"],
+];
+
+function renderPhone(d) {
+  const box = $("phoneResult");
+  $("phoneBanner").hidden = true;
+  const heroCls = d.valid ? "" : " invalid";
+  const heroTxt = d.valid ? "VALID NUMBER" : (d.possible ? "POSSIBLE (not formally valid)" : "INVALID NUMBER");
+  const num = d.formats && d.formats.e164 ? d.formats.e164 : (d.query || "");
+
+  let html = `<div class="ph-panel">
+    <div class="ph-hero${heroCls}">
+      <div class="num">${esc(num)}</div>
+      <span class="stat-tag">${heroTxt}</span>
+    </div>
+    <div class="ph-grid">
+      ${phoneRow(d).map(([k, v]) =>
+        `<div class="ph-cell"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`
+      ).join("")}
+    </div>`;
+
+  if (d.formats) {
+    html += `<div class="fmt-chips">
+      ${Object.entries(d.formats).map(([k, v]) => `<span class="fmt-chip">${esc(k)}: ${esc(v)}</span>`).join("")}
+    </div>`;
+  }
+
+  if (d.web !== undefined) {
+    html += `<div class="ph-web"><h3 style="margin:14px 0 2px;font-size:14px;">Public web visibility</h3>`;
+    if (!d.web.length) {
+      html += `<span class="muted" style="font-size:12.5px;">No public results found (or the free search was blocked/rate-limited).</span>`;
+    } else {
+      html += `<ul style="margin:8px 0 0;padding-left:18px;">` + d.web.map((w) =>
+        `<li><a href="${esc(w.url)}" target="_blank" rel="noopener">${esc(w.title)}</a>` +
+        (w.snippet ? `<span class="snip">${esc(w.snippet)}</span>` : "") + `</li>`
+      ).join("") + `</ul>`;
+    }
+    html += `</div>`;
+  }
+
+  html += `<div class="ph-actions">
+      <button class="ghost" id="btnPhCopy" type="button">Copy number</button>
+      <button class="ghost" id="btnPhJson" type="button">Export JSON</button>
+      <button class="ghost" id="btnPhCsv" type="button">Export CSV</button>
+    </div>
+  </div>`;
+  box.innerHTML = html;
+  box.hidden = false;
+  state.lastPhone = d;
+
+  $("btnPhCopy").addEventListener("click", () => {
+    try { navigator.clipboard.writeText(num); toast("Number copied."); }
+    catch (err) { toast("Copy failed — select manually."); }
+  });
+  $("btnPhJson").addEventListener("click", () => downloadBlob("phone_" + num.replace(/\D+/g, "") + ".json", JSON.stringify(d, null, 2), "application/json"));
+  $("btnPhCsv").addEventListener("click", () => {
+    const rows = phoneRow(d).map(([k, v]) => '"' + k + '","' + String(v).replace(/"/g, '""') + '"');
+    if (d.formats) rows.push("formats," + d.formats.e164);
+    downloadBlob("phone_" + num.replace(/\D+/g, "") + ".csv", rows.join("\n"), "text/csv");
+  });
+}
+
+function downloadBlob(fname, content, type) {
+  const blob = new Blob([content], { type: type });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = fname;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+async function analyzePhone() {
+  const raw = $("phoneNum").value.trim();
+  if (!raw) { toast("Enter a phone number first."); $("phoneNum").focus(); return; }
+  const btn = $("btnPhone");
+  btn.disabled = true;
+  btn.querySelector(".spinner").hidden = false;
+  $("phoneBanner").hidden = true;
+  try {
+    const res = await fetch("/api/phone?num=" + encodeURIComponent(raw) + "&web=" + ($("phoneSearchWeb").checked ? "1" : "0"));
+    const data = await res.json();
+    if (res.ok) {
+      renderPhone(data);
+      loadPhoneHistory();
+    } else {
+      showPhoneBanner(data.error || "Lookup failed.", false);
+    }
+  } catch (err) {
+    showPhoneBanner("Could not reach the server.", false);
+  } finally {
+    btn.disabled = false;
+    btn.querySelector(".spinner").hidden = true;
+  }
+}
+
+function showPhoneBanner(msg) {
+  const b = $("phoneBanner");
+  b.textContent = msg;
+  b.hidden = false;
+}
+
+async function loadPhoneHistory() {
+  try {
+    const res = await fetch("/api/phone/history");
+    const data = await res.json();
+    renderPhoneHistory(data.items || []);
+  } catch (err) { /* server momentarily down */ }
+}
+
+function renderPhoneHistory(items) {
+  const list = $("phHist");
+  $("phCount").textContent = items.length ? items.length + " saved" : "";
+  if (!items.length) {
+    list.innerHTML = `<div class="ph-empty">No lookups yet — analyze a number and it appears here.</div>`;
+    return;
+  }
+  list.innerHTML = items.map((it) => {
+    const ok = it.valid ? `<span class="ok claimed">valid</span>` : `<span class="ok">invalid</span>`;
+    const num = it.formats && it.formats.e164 ? it.formats.e164 : it.query;
+    const meta = [it.region, it.carrier].filter(Boolean).join(" · ");
+    return `<div class="ph-row" data-num="${esc(num)}">
+      <span class="q">${esc(num)}</span>${ok}
+      <span class="meta">${esc(meta || "—")} · ${esc(String(it.when || "").slice(0, 16))}</span>
+    </div>`;
+  }).join("");
+  list.querySelectorAll(".ph-row").forEach((row) => {
+    row.addEventListener("click", () => {
+      $("phoneNum").value = row.dataset.num;
+      analyzePhone();
+    });
+  });
+}
+
+async function clearPhoneHistory() {
+  try {
+    await fetch("/api/phone/history/clear", { method: "POST" });
+    loadPhoneHistory();
+    toast("History cleared.");
+  } catch (err) { toast("Could not clear history."); }
+}
+
 /* ---------- wiring ---------- */
 document.addEventListener("DOMContentLoaded", () => {
   $("searchForm").addEventListener("submit", startSearch);
@@ -286,6 +451,16 @@ document.addEventListener("DOMContentLoaded", () => {
   $("btnJson").addEventListener("click", () => { location.href = exportUrl("json"); });
   $("btnCsv").addEventListener("click", () => { location.href = exportUrl("csv"); });
   $("btnTxt").addEventListener("click", () => { location.href = exportUrl("txt"); });
+
+  $("modeUser").addEventListener("click", () => setMode("user"));
+  $("modePhone").addEventListener("click", () => setMode("phone"));
+  $("btnPhone").addEventListener("click", analyzePhone);
+  $("phoneNum").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") analyzePhone();
+    else if (e.key === "Escape") { $("phoneNum").value = ""; }
+  });
+  $("phClear").addEventListener("click", clearPhoneHistory);
+  if (window.location.hash === "#phone") setMode("phone");
 
   window.onerror = (msg, src, line) => toast("JS error: " + msg + " @line " + line);
 
