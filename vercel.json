@@ -2,9 +2,12 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "builds": [
     { "src": "public/**", "use": "@vercel/static" },
-    { "src": "**/*.py", "use": "@vercel/static" }
+    { "src": "api/phone.py", "use": "@vercel/python" },
+    { "src": "api/hostscan.py", "use": "@vercel/python" }
   ],
   "routes": [
+    { "src": "/api/phone", "dest": "/api/phone.py" },
+    { "src": "/api/hostscan", "dest": "/api/hostscan.py" },
     { "src": "/", "dest": "/public/index.html" },
     { "src": "/ui/(.*)", "dest": "/public/$1" },
     { "src": "/app/ui/(.*)", "dest": "/public/$1" },

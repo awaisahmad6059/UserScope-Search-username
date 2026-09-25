@@ -43,6 +43,34 @@ function demoBanner(msg) {
   b.hidden = false;
 }
 
+async function hostedScan(username) {
+  const nsfw = $("nsfw").checked ? "1" : "0";
+  const timeout = Math.min(3, parseInt($("timeout").value, 10) || 3);
+  const btn = $("btnSearch");
+  btn.disabled = true;
+  btn.querySelector(".spinner").hidden = false;
+  btn.querySelector(".btn-txt").textContent = "Scanning…";
+  demoBanner("Hosted lite scan — 12 popular sites, one request. Datacenter IP may block some sites. Full 462-site scan runs locally; please wait…");
+  try {
+    const res = await fetch("/api/hostscan?username=" + encodeURIComponent(username) + "&nsfw=" + nsfw + "&timeout=" + timeout);
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      demoBanner("Hosted scan failed: " + (data.error || ("HTTP " + res.status)));
+      return;
+    }
+    state.last = data;
+    render(data);
+    demoBanner("Hosted lite scan done — " + (data.checked || 0) + "/" + (data.total || 0) + " sites, "
+      + (data.counts.claimed || 0) + " found. For the true 462-site live scan, run python app\\server.py on your machine.");
+  } catch (err) {
+    demoBanner("Hosted scan unreachable — try again in a moment.");
+  } finally {
+    btn.disabled = false;
+    btn.querySelector(".spinner").hidden = true;
+    btn.querySelector(".btn-txt").textContent = "Search";
+  }
+}
+
 async function pollStatus() {
   try {
     const res = await fetch("/api/status");
@@ -57,7 +85,7 @@ async function pollStatus() {
   } catch (err) {
     if (!state.apiDown) {
       state.apiDown = true;
-      demoBanner("This looks like a static demo — the search/phone backend is not reachable here. Install UserScope and run locally: python app\\server.py  →  http:\/\/127.0.0.1:4545\/ui\/");
+      demoBanner("Online demo mode — username gets a limited 12-site scan, phone lookup works fully. For the complete 462-site live scan + history, run locally: python app\\server.py  →  127.0.0.1:4545/ui/");
     }
   }
 }
@@ -243,11 +271,7 @@ async function startSearch(e) {
   e.preventDefault();
   const u = $("u").value.trim();
   if (!u) { toast("Enter a username first."); $("u").focus(); return; }
-  if (state.apiDown) {
-    demoBanner("Search needs the local backend — this static demo can't scan. Run python app\\server.py on your machine.");
-    toast("Static demo — search unavailable here.");
-    return;
-  }
+  if (state.apiDown) { hostedScan(u); return; }
   const nsfw = $("nsfw").checked ? "1" : "0";
   const timeout = $("timeout").value;
   const params = new URLSearchParams({ username: u, nsfw: nsfw, timeout: timeout });
@@ -392,10 +416,6 @@ function downloadBlob(fname, content, type) {
 async function analyzePhone() {
   const raw = $("phoneNum").value.trim();
   if (!raw) { toast("Enter a phone number first."); $("phoneNum").focus(); return; }
-  if (state.apiDown) {
-    showPhoneBanner("This is a static demo — phone lookup needs the local backend (python app\\server.py).", "demo");
-    return;
-  }
   const btn = $("btnPhone");
   btn.disabled = true;
   btn.querySelector(".spinner").hidden = false;
