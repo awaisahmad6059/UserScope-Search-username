@@ -136,7 +136,7 @@ The engine fires parallel HTTP probes, our custom notifier forwards every result
 ## ⚠️ Notes
 
 - **This is a local-first desktop tool.** The dashboard binds to `127.0.0.1`; the scan engine runs in background threads and writes history to local files — that is exactly why it will not work as a hosted/serverless web app. Keep it on your own machine.
-- `vercel.json` exists only so a Vercel import **builds without error** (it serves the UI as static files). The search **will not run** there — there is no backend. That's a deliberate "ignore me" config, not a hosting setup.
+- `vercel.json` + `public/` exist only so a Vercel import **builds and shows the UI** (static files served at the site root). The search **will not run** there — there is no backend. `public/` is just a static mirror of `app/ui/` for deployment; when you change the UI locally, mirror the files there before redeploying.
 - Results depend on the network you're on. Sites behind strict bot-detection (WAF) show **Blocked** — a home/mobile IP works far better than a datacenter/VPN one.
 - One full scan can take **minutes** (462 sites × network round-trips). That's normal — watch it live.
 - **Use responsibly.** Search your own usernames/numbers or run authorized OSINT work only. Many sites prohibit automated probing; keep within the law and site terms.
