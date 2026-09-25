@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "cleanUrls": true,
+  "builds": [
+    {
+      "src": "app/ui/**",
+      "use": "@vercel/static",
+      "config": { "cleanUrls": true }
+    }
+  ],
+  "routes": [
+    { "src": "/", "dest": "/app/ui/index.html" },
+    { "src": "/ui/(.*)", "dest": "/app/ui/$1" }
+  ]
+}
