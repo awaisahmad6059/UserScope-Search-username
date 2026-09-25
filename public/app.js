@@ -8,6 +8,7 @@ const state = {
   q: "",
   seen: new Set(),
   last: null,
+  apiDown: false,
 };
 
 const $ = (id) => document.getElementById(id);
@@ -35,14 +36,29 @@ function toast(msg) {
 }
 
 /* ---------- polling core ---------- */
+function demoBanner(msg) {
+  const b = $("banner");
+  b.className = "banner demo";
+  b.textContent = msg;
+  b.hidden = false;
+}
+
 async function pollStatus() {
   try {
     const res = await fetch("/api/status");
     if (!res.ok) throw new Error("API " + res.status);
     const s = await res.json();
     render(s);
+    if (state.apiDown) {
+      // backend alive again (e.g. local run started after a static deploy)
+      state.apiDown = false;
+      $("banner").hidden = true;
+    }
   } catch (err) {
-    toast("Dashboard API unreachable — is the server running?");
+    if (!state.apiDown) {
+      state.apiDown = true;
+      demoBanner("This looks like a static demo — the search/phone backend is not reachable here. Install UserScope and run locally: python app\\server.py  →  http:\/\/127.0.0.1:4545\/ui\/");
+    }
   }
 }
 
@@ -227,6 +243,11 @@ async function startSearch(e) {
   e.preventDefault();
   const u = $("u").value.trim();
   if (!u) { toast("Enter a username first."); $("u").focus(); return; }
+  if (state.apiDown) {
+    demoBanner("Search needs the local backend — this static demo can't scan. Run python app\\server.py on your machine.");
+    toast("Static demo — search unavailable here.");
+    return;
+  }
   const nsfw = $("nsfw").checked ? "1" : "0";
   const timeout = $("timeout").value;
   const params = new URLSearchParams({ username: u, nsfw: nsfw, timeout: timeout });
@@ -371,6 +392,10 @@ function downloadBlob(fname, content, type) {
 async function analyzePhone() {
   const raw = $("phoneNum").value.trim();
   if (!raw) { toast("Enter a phone number first."); $("phoneNum").focus(); return; }
+  if (state.apiDown) {
+    showPhoneBanner("This is a static demo — phone lookup needs the local backend (python app\\server.py).", "demo");
+    return;
+  }
   const btn = $("btnPhone");
   btn.disabled = true;
   btn.querySelector(".spinner").hidden = false;
@@ -392,8 +417,9 @@ async function analyzePhone() {
   }
 }
 
-function showPhoneBanner(msg) {
+function showPhoneBanner(msg, cls) {
   const b = $("phoneBanner");
+  b.className = "banner" + (cls ? " " + cls : "");
   b.textContent = msg;
   b.hidden = false;
 }
